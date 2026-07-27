@@ -1,0 +1,7 @@
+/target/
+/.local/
+/.profile/
+.env
+.env.*
+*.log
+/target

@@ -1,0 +1,48 @@
+[package]
+name = "gw3"
+version = "0.0.1"
+edition = "2024"
+description = "Guild Wars 2 official API and Wiki wrapper with CLI and MCP interfaces."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/liuchong/gw3"
+readme = "README.md"
+keywords = ["gw2", "guild-wars-2", "mcp", "cli", "api"]
+categories = ["api-bindings", "command-line-utilities"]
+
+[features]
+default = ["cli", "mcp"]
+cli = []
+mcp = []
+
+[[bin]]
+name = "gw3"
+path = "src/bin/gw3.rs"
+required-features = ["cli"]
+
+[[bin]]
+name = "gw3-mcp"
+path = "src/bin/gw3-mcp.rs"
+required-features = ["mcp"]
+
+[[test]]
+name = "integration_test"
+path = "integration_test/main.rs"
+
+[dependencies]
+clap = { version = "4.6.4", features = ["derive", "env"] }
+reqwest = { version = "0.13.4", default-features = false, features = ["json", "rustls"] }
+rmcp = { version = "2.2.0", features = ["server", "transport-io", "schemars"] }
+schemars = { version = "1.2.1", features = ["derive"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+thiserror = "2.0.19"
+tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "io-std", "io-util"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+url = "2.5.8"
+
+[dev-dependencies]
+assert_cmd = "2.2.2"
+httpmock = "0.8.3"
+predicates = "3.1.4"
+tempfile = "3.27.0"

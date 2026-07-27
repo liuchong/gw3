@@ -1,0 +1,140 @@
+# gw3
+
+`gw3` is a Rust wrapper for the Guild Wars 2 official API v2 and Guild Wars 2 Wiki read APIs.
+
+Version `0.0.1` ships one publishable crate with:
+
+- `gw3`: a command-line tool.
+- `gw3-mcp`: an MCP server over standard input/output.
+- `gw3`: a Rust library used by both binaries.
+
+The first release is read-only. It does not read the game process, automate gameplay, or implement Windows internal interfaces.
+
+## Install
+
+From the repository:
+
+```sh
+cargo install --path .
+```
+
+After publishing:
+
+```sh
+cargo install gw3
+```
+
+## API Key
+
+Public game data does not need an API key. Account, character, inventory, wallet, trading post history, PvP, WvW, and guild private data require a Guild Wars 2 API key.
+
+Create a key at `https://account.arena.net/applications`.
+
+Use an environment variable:
+
+```sh
+export GW2_API_KEY="your-api-key"
+```
+
+Or pass it to supported commands:
+
+```sh
+gw3 --api-key "your-api-key" token info
+```
+
+`gw3` sends keys via `Authorization: Bearer <key>` and does not persist them.
+
+## CLI Examples
+
+List official API routes:
+
+```sh
+gw3 api routes
+```
+
+Call a public endpoint:
+
+```sh
+gw3 api get /v2/items --ids 19684 --lang zh
+```
+
+Look up items:
+
+```sh
+gw3 item get --ids 19684,19721 --lang zh
+```
+
+Look up trading post prices:
+
+```sh
+gw3 item prices --ids 19684
+```
+
+Inspect the configured API key:
+
+```sh
+gw3 token info
+```
+
+Read account data:
+
+```sh
+gw3 account info
+gw3 character list
+```
+
+Search Guild Wars 2 Wiki:
+
+```sh
+gw3 wiki search "Legendary armor"
+gw3 wiki page "Legendary armor"
+```
+
+All CLI commands print JSON by default.
+
+## MCP Usage
+
+Run the MCP server:
+
+```sh
+gw3-mcp
+```
+
+Example MCP client configuration:
+
+```json
+{
+  "mcpServers": {
+    "gw3": {
+      "command": "gw3-mcp",
+      "env": {
+        "GW2_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+The server exposes these tools:
+
+- `gw2_api_request`
+- `gw2_token_info`
+- `gw2_item_lookup`
+- `gw2_item_prices`
+- `gw2_account_summary`
+- `gw2_character_list`
+- `gw2_wiki_search`
+- `gw2_wiki_page`
+
+## Development
+
+Run the full verification suite:
+
+```sh
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
+cargo test --all-targets
+cargo publish --dry-run
+```
+
+Integration tests live in `integration_test/` and use local mock servers instead of the live API.
