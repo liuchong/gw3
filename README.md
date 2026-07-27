@@ -91,6 +91,8 @@ gw3 wiki page "Legendary armor"
 
 All CLI commands print JSON by default.
 
+More examples are available in [docs/pages/quick-demo.md](docs/pages/quick-demo.md).
+
 ## MCP Usage
 
 Run the MCP server:
