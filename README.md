@@ -138,3 +138,7 @@ cargo publish --dry-run
 ```
 
 Integration tests live in `integration_test/` and use local mock servers instead of the live API.
+
+## License
+
+`gw3` is licensed under the [Zero Public License 1.0](https://license.pub/0pl/) through the repository `LICENSE` file.
