@@ -1,9 +1,8 @@
-use crate::api::Gw3Error;
+use crate::config::DEFAULT_WIKI_BASE_URL;
+use crate::error::Gw3Error;
 use reqwest::{Client, StatusCode, Url};
 use serde_json::Value;
 use std::time::Duration;
-
-const DEFAULT_WIKI_BASE_URL: &str = "https://wiki.guildwars2.com/api.php";
 
 #[derive(Debug, Clone)]
 pub struct WikiClient {

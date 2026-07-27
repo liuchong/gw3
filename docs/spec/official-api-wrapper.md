@@ -7,6 +7,20 @@ Version `0.0.1` exposes a Rust library plus two binaries: `gw3` for command-line
 
 The first release is read-only. It can query public game data, authenticated account data, and public Wiki pages. It must not read the game process, automate gameplay, persist secrets, or expose unfinished Windows internal features.
 
+## Code Architecture
+
+The crate is intentionally single-package but not flat. Responsibilities are split by layer:
+
+- `src/config.rs` and `src/error.rs`: shared configuration and stable error types.
+- `src/gw2/`: Guild Wars 2 official API domain client, including request models, endpoint metadata, path normalization, and HTTP behavior.
+- `src/wiki/`: Guild Wars 2 Wiki MediaWiki client.
+- `src/api/`: compatibility facade that re-exports the public API types from `gw2`, `config`, and `error`.
+- `src/cli/`: command-line argument definitions, command runner, and JSON output adapter.
+- `src/mcp/`: MCP server construction, tool parameter models, and tool implementations.
+- `src/bin/`: thin binary entrypoints only.
+
+CLI and MCP must not duplicate GW2 or Wiki request behavior. They delegate to `gw2` and `wiki`.
+
 ## API Client Behavior
 
 The core API client sends requests to `https://api.guildwars2.com` by default. Tests may override the base URL with a local mock server.

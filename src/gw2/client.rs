@@ -1,100 +1,19 @@
+use super::{ApiRequest, normalize_api_path, validate_lang};
+use crate::config::{ClientConfig, DEFAULT_API_BASE_URL, DEFAULT_WIKI_BASE_URL};
+use crate::error::Gw3Error;
 use reqwest::{Client, StatusCode, Url};
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::Duration;
-use thiserror::Error;
 
-const DEFAULT_API_BASE_URL: &str = "https://api.guildwars2.com";
-const DEFAULT_WIKI_BASE_URL: &str = "https://wiki.guildwars2.com/api.php";
 const MAX_IDS_PER_REQUEST: usize = 200;
 
 #[derive(Debug, Clone)]
-pub struct ClientConfig {
-    pub base_url: String,
-    pub wiki_base_url: String,
-    pub lang: Option<String>,
-    pub schema_version: Option<String>,
-    pub api_key: Option<String>,
-    pub timeout_secs: u64,
-}
-
-impl Default for ClientConfig {
-    fn default() -> Self {
-        Self {
-            base_url: DEFAULT_API_BASE_URL.to_string(),
-            wiki_base_url: DEFAULT_WIKI_BASE_URL.to_string(),
-            lang: None,
-            schema_version: None,
-            api_key: None,
-            timeout_secs: 30,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct ApiRequest {
-    pub path: String,
-    pub id: Option<String>,
-    pub ids: Vec<String>,
-    pub page: Option<u32>,
-    pub page_size: Option<u32>,
-    pub lang: Option<String>,
-    pub schema_version: Option<String>,
-    pub query: Vec<(String, String)>,
-    pub requires_auth: bool,
-}
-
-impl ApiRequest {
-    pub fn new(path: impl Into<String>) -> Self {
-        Self {
-            path: path.into(),
-            ..Self::default()
-        }
-    }
-
-    pub fn requires_auth(mut self) -> Self {
-        self.requires_auth = true;
-        self
-    }
-
-    pub fn with_id(mut self, id: impl Into<String>) -> Self {
-        self.id = Some(id.into());
-        self
-    }
-
-    pub fn with_ids<I, S>(mut self, ids: I) -> Self
-    where
-        I: IntoIterator<Item = S>,
-        S: ToString,
-    {
-        self.ids = ids.into_iter().map(|id| id.to_string()).collect();
-        self
-    }
-
-    pub fn with_lang(mut self, lang: Option<String>) -> Self {
-        self.lang = lang;
-        self
-    }
-
-    pub fn with_schema_version(mut self, schema_version: Option<String>) -> Self {
-        self.schema_version = schema_version;
-        self
-    }
-
-    pub fn with_page(mut self, page: Option<u32>, page_size: Option<u32>) -> Self {
-        self.page = page;
-        self.page_size = page_size;
-        self
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct ApiClient {
+pub struct Gw2Client {
     config: ClientConfig,
     http: Client,
 }
 
-impl ApiClient {
+impl Gw2Client {
     pub fn new(config: ClientConfig) -> Result<Self, Gw3Error> {
         validate_lang(config.lang.as_deref())?;
         let http = Client::builder()
@@ -262,71 +181,5 @@ impl ApiClient {
         }
 
         Ok(url)
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EndpointSpec {
-    pub path: String,
-    pub lang: bool,
-    pub auth: bool,
-    pub active: bool,
-}
-
-#[derive(Debug, Error)]
-pub enum Gw3Error {
-    #[error("invalid language `{0}`; expected one of en, es, de, fr, zh")]
-    InvalidLanguage(String),
-    #[error("GW2_API_KEY or --api-key is required for this command")]
-    MissingApiKey,
-    #[error("invalid API path `{0}`; expected /v2/...")]
-    InvalidPath(String),
-    #[error("invalid URL `{url}`: {source}")]
-    InvalidUrl {
-        url: String,
-        source: url::ParseError,
-    },
-    #[error("failed to build HTTP client: {0}")]
-    HttpClient(reqwest::Error),
-    #[error("transport error: {0}")]
-    Transport(reqwest::Error),
-    #[error("JSON error: {0}")]
-    Json(serde_json::Error),
-    #[error("forbidden by official API: {body}")]
-    Forbidden { body: String },
-    #[error("official API resource was not found: {body}")]
-    NotFound { body: String },
-    #[error("official API rate limit exceeded: {body}")]
-    RateLimited { body: String },
-    #[error("official API endpoint is disabled: {body}")]
-    DisabledEndpoint { body: String },
-    #[error("official API upstream failure {status}: {body}")]
-    Upstream { status: u16, body: String },
-    #[error("unexpected HTTP status {status}: {body}")]
-    UnexpectedStatus { status: u16, body: String },
-    #[error("unexpected response shape: {0}")]
-    UnexpectedResponse(Value),
-}
-
-pub fn normalize_api_path(path: &str) -> Result<String, Gw3Error> {
-    let trimmed = path.trim();
-    if trimmed == "/v2.json" || trimmed == "v2.json" {
-        return Ok("/v2.json".to_string());
-    }
-
-    let path = trimmed.strip_prefix('/').unwrap_or(trimmed);
-    if path == "v2" || path.starts_with("v2/") {
-        Ok(format!("/{path}"))
-    } else if !path.is_empty() {
-        Ok(format!("/v2/{path}"))
-    } else {
-        Err(Gw3Error::InvalidPath(trimmed.to_string()))
-    }
-}
-
-fn validate_lang(lang: Option<&str>) -> Result<(), Gw3Error> {
-    match lang {
-        Some("en" | "es" | "de" | "fr" | "zh") | None => Ok(()),
-        Some(other) => Err(Gw3Error::InvalidLanguage(other.to_string())),
     }
 }

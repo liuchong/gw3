@@ -1,23 +1,14 @@
-use crate::api::{ApiClient, ApiRequest, ClientConfig, Gw3Error};
+use super::params::{ApiRequestParams, IdsParams, WikiQueryParams};
+use super::server::Gw3McpServer;
+use crate::api::ApiClient;
+use crate::api::ApiRequest;
+use crate::config::ClientConfig;
+use crate::error::Gw3Error;
 use crate::wiki::WikiClient;
-use rmcp::{
-    ServerHandler, ServiceExt,
-    handler::server::{router::tool::ToolRouter, wrapper::Parameters},
-    model::{ServerCapabilities, ServerInfo},
-    tool, tool_handler, tool_router,
-};
-use schemars::JsonSchema;
-use serde::Deserialize;
+use rmcp::{handler::server::wrapper::Parameters, tool, tool_router};
 use serde_json::Value;
 
-#[derive(Debug, Clone)]
-pub struct Gw3McpServer {
-    #[allow(dead_code)]
-    tool_router: ToolRouter<Self>,
-    api_client: ApiClient,
-    wiki_client: WikiClient,
-}
-
+#[tool_router]
 impl Gw3McpServer {
     pub fn from_env() -> Result<Self, Gw3Error> {
         let config = ClientConfig {
@@ -38,41 +29,7 @@ impl Gw3McpServer {
             api_client: ApiClient::new(config)?,
         })
     }
-}
 
-#[derive(Debug, Deserialize, JsonSchema)]
-pub struct ApiRequestParams {
-    pub path: String,
-    #[serde(default)]
-    pub id: Option<String>,
-    #[serde(default)]
-    pub ids: Vec<String>,
-    #[serde(default)]
-    pub page: Option<u32>,
-    #[serde(default)]
-    pub page_size: Option<u32>,
-    #[serde(default)]
-    pub lang: Option<String>,
-    #[serde(default)]
-    pub schema_version: Option<String>,
-    #[serde(default)]
-    pub requires_auth: bool,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-pub struct IdsParams {
-    pub ids: Vec<String>,
-    #[serde(default)]
-    pub lang: Option<String>,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-pub struct WikiQueryParams {
-    pub query: String,
-}
-
-#[tool_router]
-impl Gw3McpServer {
     #[tool(
         name = "gw2_api_request",
         description = "Call a Guild Wars 2 official API v2 endpoint and return JSON"
@@ -168,19 +125,4 @@ impl Gw3McpServer {
             .and_then(|value| serde_json::to_string_pretty(&value).map_err(Gw3Error::Json))
             .map_err(|error| error.to_string())
     }
-}
-
-#[tool_handler(router = self.tool_router)]
-impl ServerHandler for Gw3McpServer {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
-    }
-}
-
-pub async fn serve_stdio() -> Result<(), Box<dyn std::error::Error>> {
-    let service = Gw3McpServer::from_env()?
-        .serve(rmcp::transport::stdio())
-        .await?;
-    service.waiting().await?;
-    Ok(())
 }
