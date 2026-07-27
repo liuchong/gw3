@@ -1,5 +1,6 @@
 pub const DEFAULT_API_BASE_URL: &str = "https://api.guildwars2.com";
 pub const DEFAULT_WIKI_BASE_URL: &str = "https://wiki.guildwars2.com/api.php";
+pub const DEFAULT_USER_AGENT: &str = "gw3/0.0.1 (https://github.com/liuchong/gw3)";
 
 #[derive(Debug, Clone)]
 pub struct ClientConfig {

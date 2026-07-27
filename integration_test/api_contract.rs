@@ -1,4 +1,5 @@
 use gw3::api::{ApiClient, ApiRequest, ClientConfig, Gw3Error};
+use gw3::config::DEFAULT_USER_AGENT;
 use gw3::wiki::WikiClient;
 use httpmock::Method::GET;
 use httpmock::MockServer;
@@ -151,6 +152,7 @@ async fn wiki_search_returns_titles() {
     let _search = server.mock(|when, then| {
         when.method(GET)
             .path("/")
+            .header("user-agent", DEFAULT_USER_AGENT)
             .query_param("action", "query")
             .query_param("list", "search")
             .query_param("srsearch", "Legendary armor");

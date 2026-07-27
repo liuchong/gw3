@@ -4,7 +4,7 @@ use clap::{Args, Parser, Subcommand};
 #[command(
     name = "gw3",
     version,
-    about = "Guild Wars 2 official API and Wiki CLI"
+    about = "Guild Wars 2 official API, Wiki CLI, and MCP server"
 )]
 pub struct Cli {
     #[arg(
@@ -54,6 +54,10 @@ pub(super) enum Commands {
     Wiki {
         #[command(subcommand)]
         command: WikiCommands,
+    },
+    Mcp {
+        #[command(subcommand)]
+        command: McpCommands,
     },
 }
 
@@ -115,6 +119,11 @@ pub(super) enum CharacterCommands {
 pub(super) enum WikiCommands {
     Search(QueryArgs),
     Page(QueryArgs),
+}
+
+#[derive(Debug, Subcommand)]
+pub(super) enum McpCommands {
+    Serve,
 }
 
 #[derive(Debug, Args)]

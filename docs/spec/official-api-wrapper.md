@@ -1,7 +1,7 @@
 # Official API Wrapper Specification
 
 `gw3` wraps the Guild Wars 2 official API v2 and Guild Wars 2 Wiki read APIs.
-Version `0.0.1` exposes a Rust library plus two binaries: `gw3` for command-line usage and `gw3-mcp` for MCP clients.
+Version `0.0.1` exposes a Rust library plus one binary: `gw3` for command-line usage and MCP clients.
 
 ## Product Boundary
 
@@ -57,12 +57,13 @@ The `gw3` binary exposes these commands:
 - `gw3 character list`: fetch `/v2/characters`.
 - `gw3 wiki search <query>`: search Guild Wars 2 Wiki pages.
 - `gw3 wiki page <title>`: fetch a plain-text page summary and URL.
+- `gw3 mcp serve`: serve MCP over standard input/output.
 
 CLI output is JSON by default so it can be piped into other tools.
 
 ## MCP Behavior
 
-The `gw3-mcp` binary serves MCP over standard input/output. It exposes:
+The `gw3 mcp serve` command serves MCP over standard input/output. It exposes:
 
 - `gw2_api_request`: generic official API request.
 - `gw2_token_info`: token permission inspection.
@@ -95,6 +96,7 @@ The first release does not parse complex wikitext templates into stable typed da
 - Given more than 200 IDs, when an item lookup runs, then the client splits the request and merges successful JSON arrays.
 - Given an upstream `429`, when any API command runs, then it returns a rate-limit error without retrying forever.
 - Given an MCP client calls `gw2_item_prices`, when the arguments match `gw3 item prices`, then both entry points return the same JSON semantics.
+- Given a user installs the crate, when they inspect installed binaries, then the project exposes only the `gw3` binary and MCP is reached through `gw3 mcp serve`.
 - Given a Wiki query, when `gw3 wiki search Legendary armor` runs, then it returns matching page titles and URLs.
 
 ## Verification

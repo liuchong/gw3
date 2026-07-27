@@ -14,6 +14,13 @@ pub async fn run() -> Result<(), Gw3Error> {
 }
 
 async fn run_from(cli: Cli) -> Result<(), Gw3Error> {
+    if let Commands::Mcp { command: _ } = &cli.command {
+        crate::mcp::serve_stdio()
+            .await
+            .map_err(|error| Gw3Error::Runtime(error.to_string()))?;
+        return Ok(());
+    }
+
     let api_client = ApiClient::new(ClientConfig {
         base_url: cli.api_base_url.clone(),
         wiki_base_url: cli.wiki_base_url.clone(),
@@ -65,6 +72,7 @@ async fn run_from(cli: Cli) -> Result<(), Gw3Error> {
             WikiCommands::Search(args) => wiki_client.search(&join_query(args.query)).await?,
             WikiCommands::Page(args) => wiki_client.page(&join_query(args.query)).await?,
         },
+        Commands::Mcp { command: _ } => unreachable!("mcp commands return before API clients run"),
     };
 
     print_json(&value);

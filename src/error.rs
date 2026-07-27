@@ -34,4 +34,6 @@ pub enum Gw3Error {
     UnexpectedStatus { status: u16, body: String },
     #[error("unexpected response shape: {0}")]
     UnexpectedResponse(Value),
+    #[error("runtime error: {0}")]
+    Runtime(String),
 }

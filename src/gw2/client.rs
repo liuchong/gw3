@@ -1,5 +1,7 @@
 use super::{ApiRequest, normalize_api_path, validate_lang};
-use crate::config::{ClientConfig, DEFAULT_API_BASE_URL, DEFAULT_WIKI_BASE_URL};
+use crate::config::{
+    ClientConfig, DEFAULT_API_BASE_URL, DEFAULT_USER_AGENT, DEFAULT_WIKI_BASE_URL,
+};
 use crate::error::Gw3Error;
 use reqwest::{Client, StatusCode, Url};
 use serde_json::Value;
@@ -18,6 +20,7 @@ impl Gw2Client {
         validate_lang(config.lang.as_deref())?;
         let http = Client::builder()
             .timeout(Duration::from_secs(config.timeout_secs))
+            .user_agent(DEFAULT_USER_AGENT)
             .build()
             .map_err(Gw3Error::HttpClient)?;
         Ok(Self { config, http })

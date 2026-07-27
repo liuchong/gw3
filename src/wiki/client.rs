@@ -1,4 +1,4 @@
-use crate::config::DEFAULT_WIKI_BASE_URL;
+use crate::config::{DEFAULT_USER_AGENT, DEFAULT_WIKI_BASE_URL};
 use crate::error::Gw3Error;
 use reqwest::{Client, StatusCode, Url};
 use serde_json::Value;
@@ -15,6 +15,7 @@ impl WikiClient {
         let base_url = base_url.into();
         let http = Client::builder()
             .timeout(Duration::from_secs(30))
+            .user_agent(DEFAULT_USER_AGENT)
             .build()
             .map_err(Gw3Error::HttpClient)?;
         Ok(Self { base_url, http })

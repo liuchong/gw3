@@ -1,8 +1,28 @@
 use assert_cmd::Command;
+use gw3::config::DEFAULT_USER_AGENT;
 use httpmock::Method::GET;
 use httpmock::MockServer;
 use predicates::prelude::*;
 use serde_json::json;
+
+#[test]
+fn manifest_declares_only_one_binary_entrypoint() {
+    let manifest = include_str!("../Cargo.toml");
+
+    assert_eq!(manifest.matches("[[bin]]").count(), 1);
+    assert!(manifest.contains("name = \"gw3\""));
+    assert!(!manifest.contains("name = \"gw3-mcp\""));
+}
+
+#[test]
+fn cli_mcp_help_exposes_stdio_server_mode() {
+    let mut cmd = Command::cargo_bin("gw3").expect("gw3 binary should build");
+
+    cmd.args(["mcp", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("serve"));
+}
 
 #[test]
 fn cli_item_get_outputs_public_item_json() {
@@ -50,6 +70,7 @@ fn cli_wiki_search_outputs_page_title() {
     let _search = server.mock(|when, then| {
         when.method(GET)
             .path("/")
+            .header("user-agent", DEFAULT_USER_AGENT)
             .query_param("action", "query")
             .query_param("list", "search")
             .query_param("srsearch", "Legendary armor");

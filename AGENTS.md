@@ -5,7 +5,7 @@
 ## Scope
 
 - 只维护一个可发布到 crates.io 的 crate，包名为 `gw3`，版本从 `0.0.1` 开始。
-- 同一个 crate 内同时提供库、`gw3` 命令行入口和 `gw3-mcp` MCP 入口。
+- 同一个 crate 内只提供一个 `gw3` binary；普通 CLI 和 MCP 服务都必须挂在这个入口下。
 - CLI 和 MCP 必须复用 `src/api`、`src/wiki` 中的同一套业务逻辑，入口层只做参数解析和协议适配。
 - 本阶段不做 IDE 扩展、浏览器扩展、游戏插件 UI、Windows 内部接口、游戏进程读取或自动化游戏操作。
 

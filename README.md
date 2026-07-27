@@ -4,9 +4,8 @@
 
 Version `0.0.1` ships one publishable crate with:
 
-- `gw3`: a command-line tool.
-- `gw3-mcp`: an MCP server over standard input/output.
-- `gw3`: a Rust library used by both binaries.
+- `gw3`: the single binary entrypoint for command-line usage and MCP service mode.
+- `gw3`: a Rust library used by the binary entrypoint.
 
 The first release is read-only. It does not read the game process, automate gameplay, or implement Windows internal interfaces.
 
@@ -97,7 +96,7 @@ All CLI commands print JSON by default.
 Run the MCP server:
 
 ```sh
-gw3-mcp
+gw3 mcp serve
 ```
 
 Example MCP client configuration:
@@ -106,7 +105,8 @@ Example MCP client configuration:
 {
   "mcpServers": {
     "gw3": {
-      "command": "gw3-mcp",
+      "command": "gw3",
+      "args": ["mcp", "serve"],
       "env": {
         "GW2_API_KEY": "your-api-key"
       }
