@@ -89,9 +89,7 @@ gw3 wiki search "Legendary armor"
 gw3 wiki page "Legendary armor"
 ```
 
-All CLI commands print JSON by default.
-
-More examples are available in [docs/pages/quick-demo.md](docs/pages/quick-demo.md).
+All CLI commands print JSON by default. Runnable Rust examples are available in [examples/](examples/).
 
 ## MCP Usage
 
