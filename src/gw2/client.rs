@@ -1,10 +1,14 @@
-use super::{ApiRequest, normalize_api_path, validate_lang};
+use super::{
+    ApiRequest, PublicEndpointKind, excluded_endpoint, normalize_api_path, public_endpoint,
+    public_endpoints, validate_lang,
+};
 use crate::config::{
     ClientConfig, DEFAULT_API_BASE_URL, DEFAULT_USER_AGENT, DEFAULT_WIKI_BASE_URL,
 };
 use crate::error::Gw3Error;
 use reqwest::{Client, StatusCode, Url};
 use serde_json::Value;
+use std::collections::BTreeMap;
 use std::time::Duration;
 
 const MAX_IDS_PER_REQUEST: usize = 200;
@@ -77,6 +81,148 @@ impl Gw2Client {
     pub async fn character_list(&self) -> Result<Value, Gw3Error> {
         self.get_json(ApiRequest::new("/v2/characters").requires_auth())
             .await
+    }
+
+    pub async fn public_routes(&self) -> Result<Value, Gw3Error> {
+        serde_json::to_value(public_endpoints()).map_err(Gw3Error::Json)
+    }
+
+    pub async fn public_list(
+        &self,
+        key: &str,
+        lang: Option<String>,
+        schema_version: Option<String>,
+    ) -> Result<Value, Gw3Error> {
+        let endpoint = self.resolve_public_endpoint(key)?;
+        if endpoint.kind != PublicEndpointKind::Collection {
+            return Err(Gw3Error::UnsupportedPublicOperation {
+                key: key.to_string(),
+                operation: "list".to_string(),
+            });
+        }
+        self.get_json(
+            ApiRequest::new(endpoint.path)
+                .with_lang(lang)
+                .with_schema_version(schema_version),
+        )
+        .await
+    }
+
+    pub async fn public_get(
+        &self,
+        key: &str,
+        id: Option<String>,
+        ids: Vec<String>,
+        lang: Option<String>,
+        schema_version: Option<String>,
+    ) -> Result<Value, Gw3Error> {
+        let endpoint = self.resolve_public_endpoint(key)?;
+        match endpoint.kind {
+            PublicEndpointKind::Collection => {
+                self.get_json(
+                    ApiRequest::new(endpoint.path)
+                        .with_id_opt(id)
+                        .with_ids(ids)
+                        .with_lang(lang)
+                        .with_schema_version(schema_version),
+                )
+                .await
+            }
+            PublicEndpointKind::Singleton => {
+                if id.is_some() || !ids.is_empty() {
+                    return Err(Gw3Error::UnsupportedPublicOperation {
+                        key: key.to_string(),
+                        operation: "get with id or ids".to_string(),
+                    });
+                }
+                self.get_json(
+                    ApiRequest::new(endpoint.path)
+                        .with_lang(lang)
+                        .with_schema_version(schema_version),
+                )
+                .await
+            }
+            PublicEndpointKind::CallOnly => Err(Gw3Error::UnsupportedPublicOperation {
+                key: key.to_string(),
+                operation: "get".to_string(),
+            }),
+        }
+    }
+
+    pub async fn public_all(
+        &self,
+        key: &str,
+        lang: Option<String>,
+        schema_version: Option<String>,
+    ) -> Result<Value, Gw3Error> {
+        let endpoint = self.resolve_public_endpoint(key)?;
+        if endpoint.kind != PublicEndpointKind::Collection {
+            return Err(Gw3Error::UnsupportedPublicOperation {
+                key: key.to_string(),
+                operation: "all".to_string(),
+            });
+        }
+        self.get_json(
+            ApiRequest::new(endpoint.path)
+                .with_query_param("ids", "all")
+                .with_lang(lang)
+                .with_schema_version(schema_version),
+        )
+        .await
+    }
+
+    pub async fn public_page(
+        &self,
+        key: &str,
+        page: u32,
+        page_size: Option<u32>,
+        lang: Option<String>,
+        schema_version: Option<String>,
+    ) -> Result<Value, Gw3Error> {
+        let endpoint = self.resolve_public_endpoint(key)?;
+        if endpoint.kind != PublicEndpointKind::Collection {
+            return Err(Gw3Error::UnsupportedPublicOperation {
+                key: key.to_string(),
+                operation: "page".to_string(),
+            });
+        }
+        self.get_json(
+            ApiRequest::new(endpoint.path)
+                .with_lang(lang)
+                .with_schema_version(schema_version)
+                .with_page(Some(page), page_size),
+        )
+        .await
+    }
+
+    pub async fn public_call<I, K, V, J, Q, R>(
+        &self,
+        key: &str,
+        path_params: I,
+        query: J,
+        lang: Option<String>,
+        schema_version: Option<String>,
+    ) -> Result<Value, Gw3Error>
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: Into<String>,
+        V: Into<String>,
+        J: IntoIterator<Item = (Q, R)>,
+        Q: Into<String>,
+        R: Into<String>,
+    {
+        let endpoint = self.resolve_public_endpoint(key)?;
+        let path_params = path_params
+            .into_iter()
+            .map(|(name, value)| (name.into(), value.into()))
+            .collect::<BTreeMap<String, String>>();
+        let rendered_path =
+            self.render_public_path(key, endpoint.path, endpoint.path_params, &path_params)?;
+        let request = ApiRequest::new(rendered_path)
+            .with_lang(lang)
+            .with_schema_version(schema_version)
+            .with_query_params(query);
+        self.get_json(request).await
     }
 
     pub async fn get_json(&self, request: ApiRequest) -> Result<Value, Gw3Error> {
@@ -184,5 +330,80 @@ impl Gw2Client {
         }
 
         Ok(url)
+    }
+
+    fn resolve_public_endpoint(
+        &self,
+        key: &str,
+    ) -> Result<&'static super::PublicEndpointSpec, Gw3Error> {
+        if let Some(endpoint) = public_endpoint(key) {
+            return Ok(endpoint);
+        }
+        if let Some(endpoint) = excluded_endpoint(key) {
+            if endpoint.auth {
+                return Err(Gw3Error::PublicEndpointRequiresAuth {
+                    key: key.to_string(),
+                    path: endpoint.path.to_string(),
+                });
+            }
+            if !endpoint.active {
+                return Err(Gw3Error::InactivePublicEndpoint {
+                    key: key.to_string(),
+                    path: endpoint.path.to_string(),
+                });
+            }
+        }
+        Err(Gw3Error::UnknownPublicEndpoint(key.to_string()))
+    }
+
+    fn render_public_path(
+        &self,
+        key: &str,
+        path_template: &str,
+        expected_params: &[&str],
+        provided_params: &BTreeMap<String, String>,
+    ) -> Result<String, Gw3Error> {
+        for expected in expected_params {
+            if !provided_params.contains_key(*expected) {
+                return Err(Gw3Error::MissingPathParameter {
+                    key: key.to_string(),
+                    name: (*expected).to_string(),
+                });
+            }
+        }
+
+        for provided in provided_params.keys() {
+            if !expected_params
+                .iter()
+                .any(|expected| expected == &provided.as_str())
+            {
+                return Err(Gw3Error::UnexpectedPathParameter {
+                    key: key.to_string(),
+                    name: provided.clone(),
+                });
+            }
+        }
+
+        let mut path = path_template.to_string();
+        for expected in expected_params {
+            let placeholder = format!(":{expected}");
+            if let Some(value) = provided_params.get(*expected) {
+                path = path.replace(&placeholder, value);
+            }
+        }
+        Ok(path)
+    }
+}
+
+trait ApiRequestExt {
+    fn with_id_opt(self, id: Option<String>) -> Self;
+}
+
+impl ApiRequestExt for ApiRequest {
+    fn with_id_opt(mut self, id: Option<String>) -> Self {
+        if let Some(id) = id {
+            self = self.with_id(id);
+        }
+        self
     }
 }

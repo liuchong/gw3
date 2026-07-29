@@ -53,4 +53,22 @@ impl ApiRequest {
         self.page_size = page_size;
         self
     }
+
+    pub fn with_query_param(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
+        self.query.push((name.into(), value.into()));
+        self
+    }
+
+    pub fn with_query_params<I, K, V>(mut self, query: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: Into<String>,
+        V: Into<String>,
+    {
+        self.query = query
+            .into_iter()
+            .map(|(name, value)| (name.into(), value.into()))
+            .collect();
+        self
+    }
 }

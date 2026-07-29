@@ -51,21 +51,31 @@ List official API routes:
 gw3 api routes
 ```
 
-Call a public endpoint:
+Call a public endpoint directly:
 
 ```sh
 gw3 api get /v2/items --ids 19684 --lang zh
 ```
 
-Look up items:
+List built-in active public endpoints:
+
+```sh
+gw3 public routes
+```
+
+Use the public registry to fetch resources:
+
+```sh
+gw3 public get skins --ids 4674 --lang zh
+gw3 public get achievements --ids 1
+gw3 public page maps --page 0 --page-size 5 --lang zh
+gw3 public call recipes_search --query input=46747
+```
+
+High-frequency shortcuts remain available:
 
 ```sh
 gw3 item get --ids 19684,19721 --lang zh
-```
-
-Look up trading post prices:
-
-```sh
 gw3 item prices --ids 19684
 ```
 
@@ -123,6 +133,12 @@ The server exposes these tools:
 - `gw2_item_prices`
 - `gw2_account_summary`
 - `gw2_character_list`
+- `gw2_public_routes`
+- `gw2_public_list`
+- `gw2_public_get`
+- `gw2_public_all`
+- `gw2_public_page`
+- `gw2_public_call`
 - `gw2_wiki_search`
 - `gw2_wiki_page`
 

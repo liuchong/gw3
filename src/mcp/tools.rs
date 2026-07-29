@@ -1,4 +1,7 @@
-use super::params::{ApiRequestParams, IdsParams, WikiQueryParams};
+use super::params::{
+    ApiRequestParams, IdsParams, PublicCallParams, PublicGetParams, PublicKeyParams,
+    PublicPageParams, WikiQueryParams,
+};
 use super::server::Gw3McpServer;
 use crate::api::ApiClient;
 use crate::api::ApiRequest;
@@ -96,6 +99,107 @@ impl Gw3McpServer {
     )]
     pub async fn gw2_character_list(&self) -> Result<String, String> {
         self.stringify(self.api_client.character_list().await)
+    }
+
+    #[tool(
+        name = "gw2_public_routes",
+        description = "List built-in active public Guild Wars 2 API routes"
+    )]
+    pub async fn gw2_public_routes(&self) -> Result<String, String> {
+        self.stringify(self.api_client.public_routes().await)
+    }
+
+    #[tool(
+        name = "gw2_public_list",
+        description = "Call the base path for a built-in public collection route"
+    )]
+    pub async fn gw2_public_list(
+        &self,
+        Parameters(params): Parameters<PublicKeyParams>,
+    ) -> Result<String, String> {
+        self.stringify(
+            self.api_client
+                .public_list(&params.key, params.lang, params.schema_version)
+                .await,
+        )
+    }
+
+    #[tool(
+        name = "gw2_public_get",
+        description = "Call a built-in public route with optional id or ids"
+    )]
+    pub async fn gw2_public_get(
+        &self,
+        Parameters(params): Parameters<PublicGetParams>,
+    ) -> Result<String, String> {
+        self.stringify(
+            self.api_client
+                .public_get(
+                    &params.key,
+                    params.id,
+                    params.ids,
+                    params.lang,
+                    params.schema_version,
+                )
+                .await,
+        )
+    }
+
+    #[tool(
+        name = "gw2_public_all",
+        description = "Call a built-in public route with ids=all"
+    )]
+    pub async fn gw2_public_all(
+        &self,
+        Parameters(params): Parameters<PublicKeyParams>,
+    ) -> Result<String, String> {
+        self.stringify(
+            self.api_client
+                .public_all(&params.key, params.lang, params.schema_version)
+                .await,
+        )
+    }
+
+    #[tool(
+        name = "gw2_public_page",
+        description = "Call a built-in public route with paging parameters"
+    )]
+    pub async fn gw2_public_page(
+        &self,
+        Parameters(params): Parameters<PublicPageParams>,
+    ) -> Result<String, String> {
+        self.stringify(
+            self.api_client
+                .public_page(
+                    &params.key,
+                    params.page,
+                    params.page_size,
+                    params.lang,
+                    params.schema_version,
+                )
+                .await,
+        )
+    }
+
+    #[tool(
+        name = "gw2_public_call",
+        description = "Call a built-in public route with explicit path and query parameters"
+    )]
+    pub async fn gw2_public_call(
+        &self,
+        Parameters(params): Parameters<PublicCallParams>,
+    ) -> Result<String, String> {
+        self.stringify(
+            self.api_client
+                .public_call(
+                    &params.key,
+                    params.path_params,
+                    params.query,
+                    params.lang,
+                    params.schema_version,
+                )
+                .await,
+        )
     }
 
     #[tool(

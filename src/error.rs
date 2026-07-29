@@ -28,6 +28,20 @@ pub enum Gw3Error {
     RateLimited { body: String },
     #[error("official API endpoint is disabled: {body}")]
     DisabledEndpoint { body: String },
+    #[error("unknown public endpoint key `{0}`")]
+    UnknownPublicEndpoint(String),
+    #[error("public endpoint `{key}` requires authentication and is not exposed in `gw3 public`")]
+    PublicEndpointRequiresAuth { key: String, path: String },
+    #[error("public endpoint `{key}` is currently inactive: {path}")]
+    InactivePublicEndpoint { key: String, path: String },
+    #[error("public endpoint `{key}` does not support operation `{operation}`")]
+    UnsupportedPublicOperation { key: String, operation: String },
+    #[error("public endpoint `{key}` is missing required path parameter `{name}`")]
+    MissingPathParameter { key: String, name: String },
+    #[error("public endpoint `{key}` received unexpected path parameter `{name}`")]
+    UnexpectedPathParameter { key: String, name: String },
+    #[error("invalid name=value pair `{0}`")]
+    InvalidNameValuePair(String),
     #[error("official API upstream failure {status}: {body}")]
     Upstream { status: u16, body: String },
     #[error("unexpected HTTP status {status}: {body}")]

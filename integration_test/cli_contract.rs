@@ -92,3 +92,55 @@ fn cli_wiki_search_outputs_page_title() {
         .success()
         .stdout(predicate::str::contains("Legendary armor"));
 }
+
+#[test]
+fn cli_public_routes_lists_public_registry_without_account_endpoint() {
+    let mut cmd = Command::cargo_bin("gw3").expect("gw3 binary should build");
+
+    cmd.args(["public", "routes"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("/v2/skins"))
+        .stdout(predicate::str::contains("\"path\": \"/v2/account\"").not());
+}
+
+#[test]
+fn cli_public_get_hits_registry_backed_endpoint() {
+    let server = MockServer::start();
+    let _skins = server.mock(|when, then| {
+        when.method(GET)
+            .path("/v2/skins")
+            .query_param("ids", "4674")
+            .query_param("lang", "zh");
+        then.status(200)
+            .header("content-type", "application/json")
+            .json_body(json!([{ "id": 4674, "name": "Foefire Wraps" }]));
+    });
+
+    let mut cmd = Command::cargo_bin("gw3").expect("gw3 binary should build");
+    cmd.env("GW3_API_BASE_URL", server.base_url())
+        .args(["public", "get", "skins", "--ids", "4674", "--lang", "zh"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Foefire Wraps"));
+}
+
+#[test]
+fn cli_public_call_supports_query_pairs() {
+    let server = MockServer::start();
+    let _search = server.mock(|when, then| {
+        when.method(GET)
+            .path("/v2/recipes/search")
+            .query_param("input", "46747");
+        then.status(200)
+            .header("content-type", "application/json")
+            .json_body(json!([12051, 12052]));
+    });
+
+    let mut cmd = Command::cargo_bin("gw3").expect("gw3 binary should build");
+    cmd.env("GW3_API_BASE_URL", server.base_url())
+        .args(["public", "call", "recipes_search", "--query", "input=46747"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("12051"));
+}

@@ -147,6 +147,189 @@ async fn rate_limit_is_reported_as_stable_error() {
 }
 
 #[tokio::test]
+async fn public_routes_match_active_public_snapshot() {
+    let client = ApiClient::new(ClientConfig::default()).expect("client config should be valid");
+    let value = client
+        .public_routes()
+        .await
+        .expect("public routes should be returned locally");
+
+    let mut actual = value
+        .as_array()
+        .expect("public routes should be an array")
+        .iter()
+        .map(|entry| {
+            entry["path"]
+                .as_str()
+                .expect("route path should be a string")
+                .to_string()
+        })
+        .collect::<Vec<_>>();
+    actual.sort();
+
+    let mut expected: Vec<String> =
+        serde_json::from_str(include_str!("fixtures/public_routes_snapshot.json"))
+            .expect("snapshot should parse");
+    expected.sort();
+
+    assert_eq!(actual, expected);
+    assert!(
+        value
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|entry| entry["auth"] == false)
+    );
+}
+
+#[tokio::test]
+async fn public_get_rejects_authenticated_registry_key_before_http() {
+    let server = MockServer::start();
+    let account = server.mock(|when, then| {
+        when.method(GET).path("/v2/account");
+        then.status(200)
+            .json_body(json!({ "name": "ShouldNotBeCalled.0000" }));
+    });
+
+    let client = ApiClient::new(ClientConfig {
+        base_url: server.base_url(),
+        ..ClientConfig::default()
+    })
+    .expect("client config should be valid");
+
+    let error = client
+        .public_get("account", None, Vec::<String>::new(), None, None)
+        .await
+        .expect_err("authenticated public key should fail locally");
+
+    assert!(matches!(error, Gw3Error::PublicEndpointRequiresAuth { .. }));
+    account.assert_calls(0);
+}
+
+#[tokio::test]
+async fn public_get_uses_registry_lookup_without_authorization_header() {
+    let server = MockServer::start();
+    let _skins = server.mock(|when, then| {
+        when.method(GET)
+            .path("/v2/skins")
+            .query_param("ids", "4674")
+            .query_param("lang", "zh");
+        then.status(200)
+            .header("content-type", "application/json")
+            .json_body(json!([{ "id": 4674, "name": "Foefire Wraps" }]));
+    });
+
+    let client = ApiClient::new(ClientConfig {
+        base_url: server.base_url(),
+        ..ClientConfig::default()
+    })
+    .expect("client config should be valid");
+
+    let value = client
+        .public_get(
+            "skins",
+            None,
+            vec!["4674".to_string()],
+            Some("zh".to_string()),
+            None,
+        )
+        .await
+        .expect("public registry request should succeed");
+
+    assert_eq!(value[0]["name"], "Foefire Wraps");
+}
+
+#[tokio::test]
+async fn public_call_expands_path_params() {
+    let server = MockServer::start();
+    let _leaderboard = server.mock(|when, then| {
+        when.method(GET)
+            .path("/v2/pvp/seasons/season-1/leaderboards/ladder/eu");
+        then.status(200)
+            .header("content-type", "application/json")
+            .json_body(json!({ "top": [] }));
+    });
+
+    let client = ApiClient::new(ClientConfig {
+        base_url: server.base_url(),
+        ..ClientConfig::default()
+    })
+    .expect("client config should be valid");
+
+    let value = client
+        .public_call(
+            "pvp_season_leaderboard_entries",
+            [
+                ("id".to_string(), "season-1".to_string()),
+                ("board".to_string(), "ladder".to_string()),
+                ("region".to_string(), "eu".to_string()),
+            ],
+            Vec::<(String, String)>::new(),
+            None,
+            None,
+        )
+        .await
+        .expect("path-param request should succeed");
+
+    assert_eq!(value["top"], json!([]));
+}
+
+#[tokio::test]
+async fn public_call_passes_custom_query_pairs() {
+    let server = MockServer::start();
+    let _search = server.mock(|when, then| {
+        when.method(GET)
+            .path("/v2/recipes/search")
+            .query_param("input", "46747");
+        then.status(200)
+            .header("content-type", "application/json")
+            .json_body(json!([12051, 12052]));
+    });
+
+    let client = ApiClient::new(ClientConfig {
+        base_url: server.base_url(),
+        ..ClientConfig::default()
+    })
+    .expect("client config should be valid");
+
+    let value = client
+        .public_call(
+            "recipes_search",
+            Vec::<(String, String)>::new(),
+            [("input".to_string(), "46747".to_string())],
+            None,
+            None,
+        )
+        .await
+        .expect("query request should succeed");
+
+    assert_eq!(value.as_array().unwrap().len(), 2);
+}
+
+#[tokio::test]
+async fn public_call_requires_all_path_parameters_before_http() {
+    let server = MockServer::start();
+    let client = ApiClient::new(ClientConfig {
+        base_url: server.base_url(),
+        ..ClientConfig::default()
+    })
+    .expect("client config should be valid");
+
+    let error = client
+        .public_call(
+            "pvp_season_leaderboard_entries",
+            [("id".to_string(), "season-1".to_string())],
+            Vec::<(String, String)>::new(),
+            None,
+            None,
+        )
+        .await
+        .expect_err("missing path params should fail locally");
+
+    assert!(matches!(error, Gw3Error::MissingPathParameter { .. }));
+}
+
+#[tokio::test]
 async fn wiki_search_returns_titles() {
     let server = MockServer::start();
     let _search = server.mock(|when, then| {

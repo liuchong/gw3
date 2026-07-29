@@ -55,6 +55,10 @@ pub(super) enum Commands {
         #[command(subcommand)]
         command: WikiCommands,
     },
+    Public {
+        #[command(subcommand)]
+        command: PublicCommands,
+    },
     Mcp {
         #[command(subcommand)]
         command: McpCommands,
@@ -122,8 +126,66 @@ pub(super) enum WikiCommands {
 }
 
 #[derive(Debug, Subcommand)]
+pub(super) enum PublicCommands {
+    Routes,
+    List(PublicKeyArgs),
+    Get(PublicGetArgs),
+    All(PublicKeyArgs),
+    Page(PublicPageArgs),
+    Call(PublicCallArgs),
+}
+
+#[derive(Debug, Subcommand)]
 pub(super) enum McpCommands {
     Serve,
+}
+
+#[derive(Debug, Args)]
+pub(super) struct PublicKeyArgs {
+    pub(super) key: String,
+    #[arg(long)]
+    pub(super) lang: Option<String>,
+    #[arg(long)]
+    pub(super) schema_version: Option<String>,
+}
+
+#[derive(Debug, Args)]
+pub(super) struct PublicGetArgs {
+    pub(super) key: String,
+    #[arg(long)]
+    pub(super) id: Option<String>,
+    #[arg(long, value_delimiter = ',')]
+    pub(super) ids: Vec<String>,
+    #[arg(long)]
+    pub(super) lang: Option<String>,
+    #[arg(long)]
+    pub(super) schema_version: Option<String>,
+}
+
+#[derive(Debug, Args)]
+pub(super) struct PublicPageArgs {
+    pub(super) key: String,
+    #[arg(long)]
+    pub(super) page: u32,
+    #[arg(long)]
+    pub(super) page_size: Option<u32>,
+    #[arg(long)]
+    pub(super) lang: Option<String>,
+    #[arg(long)]
+    pub(super) schema_version: Option<String>,
+}
+
+#[derive(Debug, Args)]
+pub(super) struct PublicCallArgs {
+    pub(super) key: String,
+    #[arg(long = "param")]
+    pub(super) path_params: Vec<String>,
+    #[arg(long)]
+    pub(super) query: Vec<String>,
+    #[arg(long)]
+    pub(super) lang: Option<String>,
+    #[arg(long)]
+    pub(super) schema_version: Option<String>,
 }
 
 #[derive(Debug, Args)]

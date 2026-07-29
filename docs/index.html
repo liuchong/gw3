@@ -80,7 +80,13 @@
         <a href="./spec/official-api-wrapper.md">Specification</a>
       </div>
 
-      <h2>Try the CLI</h2>
+      <h2>Public Coverage</h2>
+      <pre><code>gw3 public routes
+gw3 public get skins --ids 4674 --lang zh
+gw3 public page maps --page 0 --page-size 5 --lang zh
+gw3 public call recipes_search --query input=46747</code></pre>
+
+      <h2>High-Frequency CLI Shortcuts</h2>
       <pre><code>cargo install gw3
 gw3 api get /v2/build
 gw3 item get --ids 19684 --lang zh

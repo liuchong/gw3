@@ -1,6 +1,6 @@
 use super::args::{
-    AccountCommands, ApiCommands, CharacterCommands, Cli, Commands, ItemCommands, TokenCommands,
-    WikiCommands,
+    AccountCommands, ApiCommands, CharacterCommands, Cli, Commands, ItemCommands, PublicCommands,
+    TokenCommands, WikiCommands,
 };
 use super::output::{join_query, print_json};
 use crate::api::{ApiClient, ApiRequest};
@@ -72,9 +72,66 @@ async fn run_from(cli: Cli) -> Result<(), Gw3Error> {
             WikiCommands::Search(args) => wiki_client.search(&join_query(args.query)).await?,
             WikiCommands::Page(args) => wiki_client.page(&join_query(args.query)).await?,
         },
+        Commands::Public { command } => match command {
+            PublicCommands::Routes => api_client.public_routes().await?,
+            PublicCommands::List(args) => {
+                api_client
+                    .public_list(&args.key, args.lang, args.schema_version)
+                    .await?
+            }
+            PublicCommands::Get(args) => {
+                api_client
+                    .public_get(&args.key, args.id, args.ids, args.lang, args.schema_version)
+                    .await?
+            }
+            PublicCommands::All(args) => {
+                api_client
+                    .public_all(&args.key, args.lang, args.schema_version)
+                    .await?
+            }
+            PublicCommands::Page(args) => {
+                api_client
+                    .public_page(
+                        &args.key,
+                        args.page,
+                        args.page_size,
+                        args.lang,
+                        args.schema_version,
+                    )
+                    .await?
+            }
+            PublicCommands::Call(args) => {
+                let path_params = parse_name_value_pairs(args.path_params)?;
+                let query = parse_name_value_pairs(args.query)?;
+                api_client
+                    .public_call(
+                        &args.key,
+                        path_params,
+                        query,
+                        args.lang,
+                        args.schema_version,
+                    )
+                    .await?
+            }
+        },
         Commands::Mcp { command: _ } => unreachable!("mcp commands return before API clients run"),
     };
 
     print_json(&value);
     Ok(())
+}
+
+fn parse_name_value_pairs(values: Vec<String>) -> Result<Vec<(String, String)>, Gw3Error> {
+    values
+        .into_iter()
+        .map(|pair| {
+            let (name, value) = pair
+                .split_once('=')
+                .ok_or_else(|| Gw3Error::InvalidNameValuePair(pair.clone()))?;
+            if name.is_empty() || value.is_empty() {
+                return Err(Gw3Error::InvalidNameValuePair(pair));
+            }
+            Ok((name.to_string(), value.to_string()))
+        })
+        .collect()
 }
